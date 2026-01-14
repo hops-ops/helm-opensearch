@@ -1,0 +1,41 @@
+# code: language=yaml
+#
+# Helm release for OpenSearch
+#
+# OpenSearch is a scalable, flexible, and extensible open-source software suite
+# for search, analytics, and observability applications.
+#
+
+{{- $os := $state.opensearch }}
+
+---
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: {{ $os.releaseName }}
+  annotations:
+    {{ setResourceNameAnnotation "helm-release-opensearch" }}
+  labels: {{ $os.labels | toJson }}
+spec:
+  managementPolicies: {{ $os.managementPolicies | toJson }}
+  forProvider:
+    chart:
+      name: opensearch
+      repository: https://opensearch-project.github.io/helm-charts/
+      version: 3.4.0
+    namespace: {{ $os.namespace }}
+    {{- if $os.overrideAllValues }}
+    values:
+      {{- toYaml $os.overrideAllValues | nindent 6 }}
+    {{- else }}
+    values:
+      # Single node mode for simpler deployments
+      singleNode: true
+      {{- if $os.values }}
+      {{- toYaml $os.values | nindent 6 }}
+      {{- end }}
+    {{- end }}
+  rollbackLimit: 3
+  providerConfigRef:
+    name: {{ $os.providerConfigRef.name }}
+    kind: {{ $os.providerConfigRef.kind }}
